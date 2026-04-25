@@ -42,15 +42,49 @@ class Settings(commands.Cog):
                 "owner_name": str(guild.owner),
                 "server_log_channel_id": None,
                 "punish_log_channel_id": None,
-                "command_channel_id": None
+                "command_channel_id": None,
+                "ticket_log_channel_id": None,
+                "ticket_panel_channel_id": None,
+                "ticket_panel_msg_id": None,
+                "ticket_count": 0
                 }
 
         else:
             # 필수 키 누락 대비 기본값 채워넣기
+            keys = ["ticket_panel_channel_id", "ticket_panel_msg_id", "ticket_count"]
+            for key in keys:
+                if key not in self.server_configs[gid]:
+                    self.server_configs[gid][key] = 0 if "count" in key else None
             self.server_configs[gid]["server_name"] = guild.name
 
         self.save_config()
         return self.server_configs[gid]
+
+    async def delete_ticket_panel(self, guild):
+        """저장된 티켓 패널 메시지를 물리적으로 삭제합니다."""
+        gid = str(guild.id)
+        config = self.server_configs.get(gid)
+        if not config:
+            return
+
+        msg_id = config.get("ticket_panel_msg_id")
+        chn_id = config.get("ticket_panel_channel_id")
+
+        if msg_id and chn_id:
+            channel = self.bot.get_channel(chn_id)
+            if not channel:
+                try:
+                    channel = await self.bot.fetch_channel(chn_id)
+                except Exception:
+                    return
+
+            try:
+                msg = await channel.fetch_message(msg_id)
+                await msg.delete()
+            except discord.NotFound:
+                pass
+            except Exception as e:
+                print(f"패널 삭제 오류: {e}")
 
 # 설정 명령어
     @commands.command(name="set")
@@ -60,13 +94,15 @@ class Settings(commands.Cog):
         key_map = {
             "server": "server_log_channel_id",
             "bot": "command_channel_id",
-            "punish": "punish_log_channel_id"
+            "punish": "punish_log_channel_id",
+            "panel": "ticket_panel_channel_id",
+            "ticket": "ticket_log_channel_id"
             }
         
 
         if not target or target.lower() not in key_map:
             embed = discord.Embed(
-                description=f"❓ 사용법: `{ctx.prefix}set [server/punish/bot/emoji/panel/ticket/all] [#채널]`",
+                description=f"❓ 사용법: `{ctx.prefix}set [server/punish/bot/panel/ticket] [#채널]`",
                 color=0x95A5A6
             )
             return await ctx.send(embed=embed)
@@ -82,6 +118,24 @@ class Settings(commands.Cog):
             color=0x2ECC71
         )
 
+        if target == "panel":
+            ticket_cog = self.bot.get_cog('Ticket')
+            if ticket_cog:
+                panel_msg = await ticket_cog.send_ticket_panel(target_channel)
+                if panel_msg:
+                    self.server_configs[gid]["ticket_panel_channel_id"] = target_channel.id
+                    self.server_configs[gid]["ticket_panel_msg_id"] = panel_msg.id
+                    embed = discord.Embed(
+                        description=f"✅ 티켓 패널이 {target_channel.mention}에 생성되었습니다.",
+                        color=0x2ECC71
+                    )
+                else:
+                    embed = discord.Embed(description="❌ 티켓 메시지 생성에 실패했습니다.", color=0xE74C3C)
+                    return await ctx.send(embed=embed)
+            else:
+                embed = discord.Embed(description="❌ Ticket Cog가 로드되지 않았습니다.", color=0xE74C3C)
+                return await ctx.send(embed=embed)
+
         self.save_config()
         await ctx.send(embed=embed)
 
@@ -93,17 +147,27 @@ class Settings(commands.Cog):
         key_map = {
             "server": "server_log_channel_id",
             "bot": "command_channel_id",
-            "punish": "punish_log_channel_id"
+            "punish": "punish_log_channel_id",
+            "panel": "ticket_panel_channel_id",
+            "ticket": "ticket_log_channel_id"
             }
 
         if target == "all":
+            await self.delete_ticket_panel(ctx.guild)
             self.server_configs.pop(gid, None)
             embed = discord.Embed(description="✅ 모든 설정이 초기화되었습니다.", color=0xE74C3C)
+
         elif target and target.lower() in key_map:
             target = target.lower()
 
+            if target == "panel":
+                await self.delete_ticket_panel(ctx.guild)
+
             if gid in self.server_configs:
                 self.server_configs[gid][key_map[target]] = None
+
+                if target == "panel":
+                    self.server_configs[gid]["ticket_panel_msg_id"] = None
 
                 embed = discord.Embed(
                     description=f"✅ **{target.upper()}** 설정 및 패널이 제거되었습니다.",
@@ -113,7 +177,7 @@ class Settings(commands.Cog):
                 embed = discord.Embed(description="❌ 설정된 데이터가 없습니다.", color=0xE74C3C)
         else:
             embed = discord.Embed(
-                description=f"❓ 사용법: `{ctx.prefix}reset [server/punish/bot/emoji/panel/ticket/all]`",
+                description=f"❓ 사용법: `{ctx.prefix}reset [server/punish/bot/panel/ticket/all]`",
                 color=0x95A5A6
             )
 
