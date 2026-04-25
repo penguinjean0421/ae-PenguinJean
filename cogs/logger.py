@@ -22,6 +22,15 @@ class Logger(commands.Cog):
 
         return self.bot.get_channel(chn_id) if chn_id else guild.system_channel
 
+    def escape_code_blocks(self, content: str, limit: int = 1000) -> str:
+        if not content:
+            return "내용 없음"
+        
+        if len(content) > limit :
+            content = content[:limit] + "..."
+
+        return content.replace("```", "`\u200b`\u200b` ")
+
     async def send_log(self, guild, embed, type="general"):
         log_channel = self.get_log_channel(guild, type)
 
@@ -72,12 +81,12 @@ class Logger(commands.Cog):
         )
         embed.add_field(
             name="수정 전",
-            value=f"```{before.content or '내용 없음'}```",
+            value=f"```{self.escape_code_blocks(before.content)}```",
             inline=False
         )
         embed.add_field(
             name="수정 후",
-            value=f"```{after.content or '내용 없음'}```",
+            value=f"```{self.escape_code_blocks(after.content)}```",
             inline=False
         )
         await self.send_log(before.guild, embed)
@@ -94,7 +103,7 @@ class Logger(commands.Cog):
         embed.description = (
             f"**작성자:** {message.author.mention}\n"
             f"**채널:** {message.channel.mention}\n"
-            f"**내용:** ```{message.content or '내용 없음'}```"
+            f"**내용:** ```{self.escape_code_blocks(message.content)}```"
         )
         await self.send_log(message.guild, embed)
 
