@@ -96,15 +96,13 @@ class Ticket(commands.Cog):
             has_image = False
 
             for attachment in message.attachments:
-                # 1. 이미지 파일인 경우 (첫 번째 이미지만 Embed Image로 설정)
                 if attachment.filename.lower().endswith(image_extensions):
                     if not has_image:
                         embed.set_image(url=attachment.url)
                         has_image = True
-                # 2. 이미지가 아니거나 추가 파일인 경우 정보 수집
+                
                 file_list.append(f"📄 {attachment.filename} ({round(attachment.size / 1024, 1)} KB)")
 
-            # 일반 파일 정보가 있다면 필드로 추가
             if file_list:
                 embed.add_field(
                     name=f"첨부파일 ({len(message.attachments)}개)", 
@@ -150,7 +148,6 @@ class Ticket(commands.Cog):
         )
         await channel.send(embed=embed)
 
-        # 로그 전송
         embed = discord.Embed(
             title="🎫 새 티켓 알림",
             color=0x2ECC71,
@@ -184,7 +181,6 @@ class Ticket(commands.Cog):
                         if not member.guild_permissions.administrator and not member.bot:
                             await channel.set_permissions(member, overwrite=None)
                     
-                    # 자동 종료 알림 (경고 - Alizarin)
                     timeout_embed = discord.Embed(
                         title="⚠️ 자동 종료",
                         description="**5분 동안 대화가 없어 티켓이 자동으로 종료되었습니다.**",
@@ -198,7 +194,6 @@ class Ticket(commands.Cog):
                 continue
 
     async def send_ticket_panel(self, channel: discord.TextChannel):
-        # 티켓 패널 디자인 (시스템 안내 - Concrete)
         embed = discord.Embed(
             title="🎫 고객 지원 센터",
             description="문의 사항이 있으시면 아래 버튼을 눌러 티켓을 열어주세요.",
@@ -228,7 +223,6 @@ class Ticket(commands.Cog):
             )
             return await ctx.send(embed=embed, delete_after=5)
 
-        # 닫기 확인 메시지 (주의/경고 - Alizarin)
         embed = discord.Embed(
             description="아래 버튼을 누르면 티켓이 종료되고 관리자 전용 채널로 변경됩니다.",
             color=0xE74C3C,
@@ -247,7 +241,6 @@ class Ticket(commands.Cog):
             )
             return await ctx.send(embed=embed, delete_after=5)
 
-        # 2. 전송할 답변 임베드 구성
         embed = discord.Embed(
             title="👤 관리자 답변",
             description=content,
@@ -261,15 +254,14 @@ class Ticket(commands.Cog):
         )
 
         try:
-            # 3. 대상 티켓 채널로 전송
             await target_channel.send(embed=embed)
-            
-            # 4. 명령어를 입력한 채널에 성공 알림
+
             embed = discord.Embed(
                 title=f"✅ {target_channel.mention} 채널에 답변을 전송했습니다.",
                 description=content,
                 color=0x2ECC71
             )
+
             await ctx.send(embed=embed, delete_after=3)
 
         except discord.Forbidden:
