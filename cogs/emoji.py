@@ -93,9 +93,7 @@ class EmojiHelper(commands.Cog):
                 )
             
         if not re.fullmatch(r"^\w{2,32}$", name):
-            return await ctx.send(
-                "❌ 이모지 이름은 2~32자의 영문, 숫자, 밑줄(_)만 가능합니다."
-            )
+            return await ctx.send("❌ 이모지 이름은 2~32자의 영문, 숫자, 밑줄(_)만 가능합니다.")
 
         target_url = ""
 
