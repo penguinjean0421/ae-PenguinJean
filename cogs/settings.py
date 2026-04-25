@@ -43,6 +43,7 @@ class Settings(commands.Cog):
                 "server_log_channel_id": None,
                 "punish_log_channel_id": None,
                 "command_channel_id": None,
+                "emoji_command_channel_id": None,
                 "ticket_log_channel_id": None,
                 "ticket_panel_channel_id": None,
                 "ticket_panel_msg_id": None,
@@ -93,8 +94,9 @@ class Settings(commands.Cog):
         """서버의 각종 로그 및 티켓 채널을 설정합니다."""
         key_map = {
             "server": "server_log_channel_id",
-            "bot": "command_channel_id",
             "punish": "punish_log_channel_id",
+            "bot": "command_channel_id",
+            "emoji": "emoji_command_channel_id",
             "panel": "ticket_panel_channel_id",
             "ticket": "ticket_log_channel_id"
             }
@@ -102,7 +104,7 @@ class Settings(commands.Cog):
 
         if not target or target.lower() not in key_map:
             embed = discord.Embed(
-                description=f"❓ 사용법: `{ctx.prefix}set [server/punish/bot/panel/ticket] [#채널]`",
+                description=f"❓ 사용법: `{ctx.prefix}set [server/punish/bot/emoji/panel/ticket] [#채널]`",
                 color=0x95A5A6
             )
             return await ctx.send(embed=embed)
@@ -146,8 +148,9 @@ class Settings(commands.Cog):
         gid = str(ctx.guild.id)
         key_map = {
             "server": "server_log_channel_id",
-            "bot": "command_channel_id",
             "punish": "punish_log_channel_id",
+            "bot": "command_channel_id",
+            "emoji": "emoji_command_channel_id",
             "panel": "ticket_panel_channel_id",
             "ticket": "ticket_log_channel_id"
             }
@@ -177,7 +180,7 @@ class Settings(commands.Cog):
                 embed = discord.Embed(description="❌ 설정된 데이터가 없습니다.", color=0xE74C3C)
         else:
             embed = discord.Embed(
-                description=f"❓ 사용법: `{ctx.prefix}reset [server/punish/bot/panel/ticket/all]`",
+                description=f"❓ 사용법: `{ctx.prefix}reset [server/punish/bot/emoji/panel/ticket/all]`",
                 color=0x95A5A6
             )
 
