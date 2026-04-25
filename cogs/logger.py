@@ -15,6 +15,8 @@ class Logger(commands.Cog):
         data = settings.get_server_data(guild)
         if type == "punish":
             chn_id = data.get("punish_log_channel_id") or data.get("server_log_channel_id")
+        if type == "ticket":
+            chn_id = data.get("ticket_log_channel_id") or data.get("server_log_channel_id")
         else:
             chn_id = data.get("server_log_channel_id")
 

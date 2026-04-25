@@ -42,8 +42,8 @@ class Information(commands.Cog):
         embed.add_field(
             name="⚙️ 시스템 설정",
             value=(
-                f"`{prefix}set [server/punish/bot] [#채널]` : 채널 설정\n"
-                f"`{prefix}reset [server/punish/bot]` : 설정 해제\n"
+                f"`{prefix}set [server/punish/bot/panel/ticket] [#채널]` : 채널 설정\n"
+                f"`{prefix}reset [server/punish/bot/panel/ticket]` : 설정 해제\n"
                 f"`{prefix}reset all` : 모든 설정 초기화"
             ),
             inline=False
@@ -68,6 +68,16 @@ class Information(commands.Cog):
                 f"`{prefix}unban [ID/닉네임]` : 차단 해제"
             ),
             inline=False
+        )
+
+        embed.add_field(
+            name="🎫 티켓 시스템",
+            value=(
+                f"`{prefix}open` : 티켓 열기\n"
+                f"`{prefix}close` : 티켓 닫기 버튼 전송\n"
+                f"`{prefix}answer [#채널] 내용` : 답변을 임베드로 전송"
+                ), 
+                inline=False,
         )
 
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
