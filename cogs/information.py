@@ -80,6 +80,15 @@ class Information(commands.Cog):
                 inline=False,
         )
 
+        embed.add_field(
+            name="🎨 이모지 관리",
+            value=(
+                f"`{prefix}addemoji [이름] [사진]` : 이모지 추가\n"
+                f"`{prefix}delemoji [이름]` : 이모지 삭제\n"
+                ), 
+                inline=False,
+        )
+
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         embed.set_footer(
             text="시간 단위: s(초), m(분), h(시간), d(일) | 예: 10m, 1d",
