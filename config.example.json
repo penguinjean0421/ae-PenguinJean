@@ -6,6 +6,7 @@
         "log_channel_id": 1112223330444555666,
         "punish_log_channel_id": 7778889990999888777,
         "command_channel_id": null,
+        "emoji_command_channel_id": null,
         "ticket_log_channel_id": null,
         "ticket_panel_channel_id": null,
         "ticket_panel_msg_id": null,
