@@ -15,7 +15,7 @@ class Logger(commands.Cog):
         data = settings.get_server_data(guild)
         if type == "punish":
             chn_id = data.get("punish_log_channel_id") or data.get("server_log_channel_id")
-        if type == "ticket":
+        elif type == "ticket":
             chn_id = data.get("ticket_log_channel_id") or data.get("server_log_channel_id")
         else:
             chn_id = data.get("server_log_channel_id")
@@ -66,30 +66,49 @@ class Logger(commands.Cog):
         await self.send_log(member.guild, embed)
 
     @commands.Cog.listener()
-    async def on_message_edit(self, before, after):
-        if before.author.bot or before.content == after.content:
+    async def on_message_edit(self, payload):
+        if not payload.guild_id:
+            return
+        
+        guild = self.bot.get_guild(payload.guild_id)
+        if not guild:
+            return
+
+        author_name = "알 수 없음"
+        author_icon = None
+        before_content = "캐시에 없음 (재시작 전 메시지)"
+
+        if payload.cached_message:
+            if payload.cached_message.author.bot:
+                return
+            author = payload.cached_message.author
+            author_name = str(author)
+            author_icon = author.display_avatar.url
+            before_content = self.escape_code_blocks(payload.cached_message.content)
+        else:
+            try:
+                channel = guild.get_channel(payload.channel_id)
+                msg = await channel.fetch_message(payload.message_id)
+                if msg.author.bot: return
+                author_name = str(msg.author)
+                author_icon = msg.author.display_avatar.url
+            except:
+                pass
+
+        after_content = payload.data.get('content')
+        if after_content is None:
             return
 
         embed = discord.Embed(
             title="📝 메시지 수정됨",
-            url=after.jump_url,
+            description=f"[메시지 바로가기](https://discord.com/channels/{payload.guild_id}/{payload.channel_id}/{payload.message_id})",
             color=0xF1C40F
         )
-        embed.set_author(
-            name=f"{before.author}",
-            icon_url=before.author.display_avatar.url
-        )
-        embed.add_field(
-            name="수정 전",
-            value=f"```{self.escape_code_blocks(before.content)}```",
-            inline=False
-        )
-        embed.add_field(
-            name="수정 후",
-            value=f"```{self.escape_code_blocks(after.content)}```",
-            inline=False
-        )
-        await self.send_log(before.guild, embed)
+        embed.set_author(name=author_name, icon_url=author_icon)
+        embed.add_field(name="수정 전", value=f"```{before_content}```", inline=False)
+        embed.add_field(name="수정 후", value=f"```{self.escape_code_blocks(after_content)}```", inline=False)
+        
+        await self.send_log(guild, embed)
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
