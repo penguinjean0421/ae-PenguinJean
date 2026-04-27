@@ -74,6 +74,10 @@ class Logger(commands.Cog):
         if not guild:
             return
 
+        channel = guild.get_channel(payload.channel_id)
+        if not channel:
+            return
+
         author_name = "알 수 없음"
         author_icon = None
         before_content = "캐시에 없음 (재시작 전 메시지)"
@@ -87,7 +91,6 @@ class Logger(commands.Cog):
             before_content = self.escape_code_blocks(payload.cached_message.content)
         else:
             try:
-                channel = guild.get_channel(payload.channel_id)
                 msg = await channel.fetch_message(payload.message_id)
                 if msg.author.bot: return
                 author_name = str(msg.author)
@@ -99,9 +102,16 @@ class Logger(commands.Cog):
         if after_content is None:
             return
 
+        location = channel.mention
+        if isinstance(channel, discord.Thread):
+            if isinstance(channel.parent, discord.ForumChannel):
+                location = f"📌 포럼: {channel.parent.mention} > 게시글: {channel.mention}"
+            else:
+                location = f"🧵 스레드: {channel.parent.mention} > {channel.mention}"
+
         embed = discord.Embed(
             title="📝 메시지 수정됨",
-            description=f"[메시지 바로가기](https://discord.com/channels/{payload.guild_id}/{payload.channel_id}/{payload.message_id})",
+            description=f"**위치:** {location}\n[메시지 바로가기](https://discord.com/channels/{payload.guild_id}/{payload.channel_id}/{payload.message_id})",
             color=0xF1C40F
         )
         embed.set_author(name=author_name, icon_url=author_icon)
@@ -114,9 +124,16 @@ class Logger(commands.Cog):
     async def on_message_delete(self, message):
         if message.author.bot or not message.guild:
             return
+        
+        channel_type = ""
+        if isinstance(message.channel, discord.Thread):
+            if isinstance(message.channel.parent, discord.ForumChannel):
+                channel_type = "[포럼 댓글] "
+            else:
+                channel_type = "[스레드 메시지] "
 
         embed = discord.Embed(
-            title="🗑️ 메시지 삭제됨",
+            title=f"🗑️ {channel_type}메시지 삭제됨",
             color=0xE74C3C
         )
         embed.description = (
@@ -125,6 +142,63 @@ class Logger(commands.Cog):
             f"**내용:** ```{self.escape_code_blocks(message.content)}```"
         )
         await self.send_log(message.guild, embed)
+
+    @commands.Cog.listener()
+    async def on_thread_create(self, thread):
+        is_forum = isinstance(thread.parent, discord.ForumChannel)
+        title = "📌 새 포럼 게시글" if is_forum else "🧵 새 스레드 생성"
+        color = 0x2ECC71
+
+        embed = discord.Embed(
+            title=title,
+            description=f"**이름:** {thread.name}\n**상위 채널:** {thread.parent.mention}\n**생성자:** {thread.owner.mention if thread.owner else '알 수 없음'}",
+            color=color
+        )
+        embed.set_footer(text=f"Thread ID: {thread.id}")
+        await self.send_log(thread.guild, embed)
+
+    @commands.Cog.listener()
+    async def on_thread_delete(self, thread):
+        is_forum = isinstance(thread.parent, discord.ForumChannel)
+        title = "🗑️ 포럼 게시글 삭제됨" if is_forum else "🗑️ 스레드 삭제됨"
+        color = 0xE74C3C
+
+        embed = discord.Embed(
+            title=title,
+            description=f"**이름:** {thread.name}\n**상위 채널:** {thread.parent.mention if thread.parent else '삭제된 채널'}",
+            color=color
+        )
+        embed.set_footer(text=f"Thread ID: {thread.id}")
+        await self.send_log(thread.guild, embed)
+
+    @commands.Cog.listener()
+    async def on_thread_update(self, before, after):
+        if before.name == after.name and before.archived == after.archived and before.locked == after.locked:
+            return
+
+        embed = discord.Embed(
+            title="⚙️ 스레드/포럼 설정 변경",
+            description=f"**대상:** {after.mention}",
+            color=0xF1C40F
+        )
+
+        if before.name != after.name:
+            embed.add_field(name="이름 변경", value=f"{before.name} ➡ {after.name}", inline=False)
+        
+        if before.archived != after.archived:
+            status = "보관됨" if after.archived else "보관 해제됨"
+            embed.add_field(name="보관 상태", value=status, inline=True)
+
+        if before.locked != after.locked:
+            status = "잠금됨" if after.locked else "잠금 해제됨"
+            embed.add_field(name="잠금 상태", value=status, inline=True)
+
+        if before.applied_tags != after.applied_tags:
+            before_tags = ", ".join([t.name for t in before.applied_tags]) or "없음"
+            after_tags = ", ".join([t.name for t in after.applied_tags]) or "없음"
+            embed.add_field(name="태그 변경", value=f"{before_tags} ➡ {after_tags}", inline=False)
+
+        await self.send_log(after.guild, embed)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
