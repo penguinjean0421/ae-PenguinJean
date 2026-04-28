@@ -66,7 +66,7 @@ class Logger(commands.Cog):
         await self.send_log(member.guild, embed)
 
     @commands.Cog.listener()
-    async def on_message_edit(self, payload):
+    async def on_raw_message_edit(self, payload):
         if not payload.guild_id:
             return
         
