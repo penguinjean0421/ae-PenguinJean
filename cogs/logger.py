@@ -98,6 +98,9 @@ class Logger(commands.Cog):
         after_content = payload.data.get('content')
         if after_content is None:
             return
+        
+        if payload.cached_message and payload.cached_message.content == after_content:
+            return
 
         embed = discord.Embed(
             title="📝 메시지 수정됨",
