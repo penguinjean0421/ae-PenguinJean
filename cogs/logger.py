@@ -121,27 +121,60 @@ class Logger(commands.Cog):
         await self.send_log(guild, embed)
 
     @commands.Cog.listener()
-    async def on_message_delete(self, message):
+    async def on_message(self, message):
         if message.author.bot or not message.guild:
             return
-        
-        channel_type = ""
+
         if isinstance(message.channel, discord.Thread):
-            if isinstance(message.channel.parent, discord.ForumChannel):
-                channel_type = "[포럼 댓글] "
+            is_forum = isinstance(message.channel.parent, discord.ForumChannel)
+            title = "💬 포럼 댓글 작성" if is_forum else "💬 스레드 메시지 작성"
+            
+            embed = discord.Embed(
+                title=title,
+                description=f"**위치:** {message.channel.parent.mention} > {message.channel.mention}\n"
+                            f"**작성자:** {message.author.mention}\n"
+                            f"**내용:** ```{self.escape_code_blocks(message.content)}```",
+                color=0x3498DB
+            )
+            embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url)
+            embed.set_footer(text=f"User ID: {message.author.id} | Message ID: {message.id}")
+            
+            await self.send_log(message.guild, embed)
+
+    @commands.Cog.listener()
+    async def on_raw_message_delete(self, payload):
+        if not payload.guild_id:
+            return
+        
+        guild = self.bot.get_guild(payload.guild_id)
+        channel = guild.get_channel(payload.channel_id)
+        
+        # 메시지 정보 구성
+        author_info = "알 수 없음 (캐시 없음)"
+        content = "삭제된 메시지의 내용을 불러올 수 없습니다."
+        
+        if payload.cached_message:
+            if payload.cached_message.author.bot: return
+            author_info = f"{payload.cached_message.author.mention}"
+            content = self.escape_code_blocks(payload.cached_message.content)
+
+        # 채널 타입 판별 (스레드/포럼 여부)
+        channel_type = "메시지"
+        location = channel.mention
+        if isinstance(channel, discord.Thread):
+            if isinstance(channel.parent, discord.ForumChannel):
+                channel_type = "포럼 댓글"
+                location = f"{channel.parent.mention} > {channel.mention}"
             else:
-                channel_type = "[스레드 메시지] "
+                channel_type = "스레드 메시지"
+                location = f"{channel.parent.mention} > {channel.mention}"
 
         embed = discord.Embed(
-            title=f"🗑️ {channel_type}메시지 삭제됨",
+            title=f"🗑️ {channel_type} 삭제됨",
+            description=f"**위치:** {location}\n**작성자:** {author_info}\n**내용:** ```{content}```",
             color=0xE74C3C
         )
-        embed.description = (
-            f"**작성자:** {message.author.mention}\n"
-            f"**채널:** {message.channel.mention}\n"
-            f"**내용:** ```{self.escape_code_blocks(message.content)}```"
-        )
-        await self.send_log(message.guild, embed)
+        await self.send_log(guild, embed)
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):
