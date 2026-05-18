@@ -48,7 +48,8 @@ class Moderation(commands.Cog):
         embed = discord.Embed(description=f"🔇 {member.mention} 마이크 차단 ({time or '무기한'})", color=0x808080)
         await ctx.send(embed=embed)
         logger = self.bot.get_cog('Logger')
-        if logger: await logger.send_log(ctx.guild, embed, type="punish")
+        if logger:
+            await logger.send_log(ctx.guild, embed, type="punish")
 
         if seconds:
             await asyncio.sleep(seconds)
@@ -58,7 +59,8 @@ class Moderation(commands.Cog):
                     description=f"🔊 {member.mention} 뮤트 해제 (시간 종료)",
                     color=0x808080
                 )
-                if logger: await logger.send_log(ctx.guild, unmute_embed, type="punish")
+                if logger: 
+                    await logger.send_log(ctx.guild, unmute_embed, type="punish")
 
     @commands.command(name="unmute")
     @commands.has_permissions(administrator=True)
@@ -71,7 +73,8 @@ class Moderation(commands.Cog):
         embed = discord.Embed(description=f"🔊 {member.mention} 마이크 차단 해제", color=0x808080)
         await ctx.send(embed=embed)
         logger = self.bot.get_cog('Logger')
-        if logger: await logger.send_log(ctx.guild, embed, type="punish")
+        if logger:
+            await logger.send_log(ctx.guild, embed, type="punish")
 
     @commands.command(name="deafen")
     @commands.has_permissions(administrator=True)
@@ -92,11 +95,12 @@ class Moderation(commands.Cog):
             await asyncio.sleep(seconds)
             if member.voice:
                 await member.edit(deafen=False)
-                embed = discord.Embed(
+                undeafen_embed = discord.Embed(
                     description=f"🔊 {member.mention} 헤드셋 차단 해제 (시간 종료)",
                     color=0x808080
                 )
-                if logger: await logger.send_log(ctx.guild, embed, type="punish")
+                if logger:
+                    await logger.send_log(ctx.guild, undeafen_embed, type="punish")
 
     @commands.command(name="undeafen")
     @commands.has_permissions(administrator=True)
@@ -109,7 +113,8 @@ class Moderation(commands.Cog):
         embed = discord.Embed(description=f"🔊 {member.mention} 헤드셋 차단 해제", color=0x808080)
         await ctx.send(embed=embed)
         logger = self.bot.get_cog('Logger')
-        if logger: await logger.send_log(ctx.guild, embed, type="punish")
+        if logger:
+            await logger.send_log(ctx.guild, embed, type="punish")
 
     @commands.command(name="vckick")
     @commands.has_permissions(administrator=True)
@@ -126,7 +131,8 @@ class Moderation(commands.Cog):
         )
         await ctx.send(embed=embed)
         logger = self.bot.get_cog('Logger')
-        if logger: await logger.send_log(ctx.guild, embed, type="punish")
+        if logger:
+            await logger.send_log(ctx.guild, embed, type="punish")
 
     @commands.command(name="timeout")
     @commands.has_permissions(administrator=True)
@@ -173,7 +179,8 @@ class Moderation(commands.Cog):
             )
             await ctx.send(embed=embed)
             logger = self.bot.get_cog('Logger')
-            if logger: await logger.send_log(ctx.guild, embed, type="punish")
+            if logger:
+                await logger.send_log(ctx.guild, embed, type="punish")
         except Exception as e:
             await ctx.send(embed=discord.Embed(description=f"❌ 오류 발생: {e}", color=0x808080))
 
@@ -188,7 +195,8 @@ class Moderation(commands.Cog):
         embed = discord.Embed(title="👞 추방 완료", description=f"{member.mention} 추방됨\n사유: {reason}", color=0x808080)
         await ctx.send(embed=embed)
         logger = self.bot.get_cog('Logger')
-        if logger: await logger.send_log(ctx.guild, embed, type="punish")
+        if logger:
+            await logger.send_log(ctx.guild, embed, type="punish")
 
     @commands.command(name="ban")
     @commands.has_permissions(ban_members=True)
@@ -201,7 +209,8 @@ class Moderation(commands.Cog):
         embed = discord.Embed(title="🚫 차단 완료", description=f"{member.mention} 차단됨\n사유: {reason}", color=0x808080)
         await ctx.send(embed=embed)
         logger = self.bot.get_cog('Logger')
-        if logger: await logger.send_log(ctx.guild, embed, type="punish")
+        if logger:
+            await logger.send_log(ctx.guild, embed, type="punish")
 
     @commands.command(name="unban")
     @commands.has_permissions(ban_members=True)
@@ -216,7 +225,8 @@ class Moderation(commands.Cog):
                 embed = discord.Embed(title="✅ 차단 해제", description=f"{entry.user} 해제됨", color=0x808080)
                 await ctx.send(embed=embed)
                 logger = self.bot.get_cog('Logger')
-                if logger: return await logger.send_log(ctx.guild, embed, type="punish")
+                if logger:
+                    return await logger.send_log(ctx.guild, embed, type="punish")
         await ctx.send(embed=discord.Embed(description="❌ 차단 목록에서 찾을 수 없습니다.", color=0x808080))
 
 

@@ -9,19 +9,24 @@ class Logger(commands.Cog):
 
     def get_log_channel(self, guild, type="general"):
         settings = self.bot.get_cog('Settings')
-        if not settings: return guild.system_channel
+        if not settings:
+            return guild.system_channel
+
         data = settings.get_server_data(guild)
         if type == "punish":
-            chn_id = data.get("punish_log_channel_id") or data.get("log_channel_id")
+            chn_id = data.get("punish_log_channel_id") or data.get("server_log_channel_id")
+        elif type == "ticket":
+            chn_id = data.get("ticket_log_channel_id") or data.get("server_log_channel_id")
         else:
-            chn_id = data.get("log_channel_id")
-            
+            chn_id = data.get("server_log_channel_id")
+
         return self.bot.get_channel(chn_id) if chn_id else guild.system_channel
 
     async def send_log(self, guild, embed, type="general"):
         log_channel = self.get_log_channel(guild, type)
         if log_channel and log_channel.permissions_for(guild.me).send_messages:
-            if not embed.timestamp: embed.timestamp = datetime.now()
+            if not embed.timestamp:
+                embed.timestamp = datetime.now()
             await log_channel.send(embed=embed)
 
     @commands.Cog.listener()
@@ -98,7 +103,7 @@ class Logger(commands.Cog):
         embed.description = (
             f"**작성자:** {message.author.mention}\n"
             f"**채널:** {message.channel.mention}\n"
-            f"**내용:** ```{message.content or '내용 없음'}```"
+            f"**내용:** ```{message.content or "내용 없음"}```"
         )
         await self.send_log(message.guild, embed)
 
