@@ -103,7 +103,7 @@ class Logger(commands.Cog):
         embed.description = (
             f"**작성자:** {message.author.mention}\n"
             f"**채널:** {message.channel.mention}\n"
-            f"**내용:** ```{message.content or "내용 없음"}```"
+            f"**내용:** ```{message.content or '내용 없음'}```"
         )
         await self.send_log(message.guild, embed)
 
