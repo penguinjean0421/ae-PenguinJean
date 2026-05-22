@@ -50,10 +50,17 @@ class Settings(commands.Cog):
                 "ticket_count": 0
             }
         else:
-            keys = ["ticket_panel_channel_id", "ticket_panel_msg_id", "ticket_count"]
+            keys = ["server_log_channel_id", "punish_log_channel_id", "ticket_log_channel_id",
+                "command_channel_id", "emoji_command_channel_id", "ticket_panel_channel_id",
+                "ticket_panel_msg_id"
+            ]
             for key in keys:
                 if key not in self.server_configs[gid]:
-                    self.server_configs[gid][key] = 0 if "count" in key else None
+                    self.server_configs[gid][key] = None
+            
+            if "ticket_count" not in self.server_configs[gid]:
+                self.server_configs[gid]["ticket_count"] = 0
+                
             self.server_configs[gid]["server_name"] = guild.name
 
         self.save_config()
@@ -87,36 +94,64 @@ class Settings(commands.Cog):
 
     @commands.command(name="set")
     @commands.has_permissions(administrator=True)
-    async def set_command(self, ctx, target: str = None, channel: discord.TextChannel = None):
+    async def set_command(self, ctx, category: str = None, target: str = None, channel: discord.TextChannel = None):
         """서버의 각종 로그 및 티켓 채널을 설정합니다."""
         key_map = {
             "server": "server_log_channel_id",
             "punish": "punish_log_channel_id",
-            "ticket": "ticket_log_channel_id",
+            "log_ticket": "ticket_log_channel_id",
             "bot": "command_channel_id",
             "emoji": "emoji_command_channel_id",
-            "panel": "ticket_panel_channel_id",
+            "cmd_ticket": "ticket_panel_channel_id",
         }
 
-        if not target or target.lower() not in key_map:
-            embed = discord.Embed(
-                description=f"❓ 사용법: `{ctx.prefix}set [server/punish/ticket/bot/emoji/panel] [#채널]`",
+        log_targets = ["server", "punish", "ticket"]
+        command_targets = ["bot", "emoji", "ticket"]
+
+        usage_embed = discord.Embed(
+            description=(
+                f"❓ 사용법 1: `{ctx.prefix}set log [server/punish/ticket] [#채널]`\n"
+                f"❓ 사용법 2: `{ctx.prefix}set command [bot/emoji/ticket] [#채널]`"
+            ),
+            color=0x808080
+        )
+
+        if not category or not target:
+            return await ctx.send(embed=usage_embed)
+
+        category = category.lower()
+        target = target.lower()
+
+        if category == "log" and target in log_targets:
+            db_target = "log_ticket" if target == "ticket" else target
+        elif category == "command" and target in command_targets:
+            db_target = "cmd_ticket" if target == "ticket" else target
+        else:
+            if category == "log":
+                rightTarget="/".join(log_targets)
+            elif category == "command":
+                rightTarget="/".join(command_targets)
+            else:
+                return await ctx.send(embed=usage_embed)
+            
+            embed=discord.Embed(
+                title="❓ 정확한 타겟을 입력해주세요.",
+                description=f"예시: `{ctx.prefix}set {category} {rightTarget} [#채널]`",
                 color=0x808080
             )
             return await ctx.send(embed=embed)
 
-        target = target.lower()
         target_channel = channel or ctx.channel
         gid = str(ctx.guild.id)
-        self.get_server_data(ctx.guild)
+        self.get_server_data(ctx.guild) # 딕셔너리 구조 완전 보장 후 데이터 주입
+        self.server_configs[gid][key_map[db_target]] = target_channel.id
 
-        self.server_configs[gid][key_map[target]] = target_channel.id
         embed = discord.Embed(
-            description=f"✅ **{target.upper()}** 채널이 {target_channel.mention}로 설정되었습니다.",
+            description=f"✅ **{category.upper()} [{target.upper()}]** 채널이 {target_channel.mention}로 설정되었습니다.",
             color=0x808080
         )
 
-        if target == "panel":
+        if db_target == "cmd_ticket":
             ticket_cog = self.bot.get_cog('Ticket')
             if ticket_cog:
                 panel_msg = await ticket_cog.send_ticket_panel(target_channel)
@@ -128,10 +163,10 @@ class Settings(commands.Cog):
                         color=0x808080
                     )
                 else:
-                    embed = discord.Embed(description="❌ 티켓 메시지 생성에 실패했습니다.", color=0xE74C3C)
+                    embed = discord.Embed(description="❌ 티켓 메시지 생성에 실패했습니다.", color=0x808080)
                     return await ctx.send(embed=embed)
             else:
-                embed = discord.Embed(description="❌ Ticket Cog가 로드되지 않았습니다.", color=0xE74C3C)
+                embed = discord.Embed(description="❌ Ticket Cog가 로드되지 않았습니다.", color=0x808080)
                 return await ctx.send(embed=embed)
 
         self.save_config()
@@ -139,46 +174,83 @@ class Settings(commands.Cog):
 
     @commands.command(name="reset")
     @commands.has_permissions(administrator=True)
-    async def reset_command(self, ctx, target: str = None):
+    async def reset_command(self, ctx, category: str = None, target: str = None):
         """서버 설정을 초기화하거나 특정 채널 설정을 제거합니다."""
         gid = str(ctx.guild.id)
+
         key_map = {
             "server": "server_log_channel_id",
             "punish": "punish_log_channel_id",
-            "ticket": "ticket_log_channel_id",
+            "log_ticket": "ticket_log_channel_id",
             "bot": "command_channel_id",
             "emoji": "emoji_command_channel_id",
-            "panel": "ticket_panel_channel_id",
+            "cmd_ticket": "ticket_panel_channel_id",
         }
 
-        if target == "all":
+        log_targets = ["server", "punish", "ticket"]
+        command_targets = ["bot", "emoji", "ticket"]
+
+        usage_embed = discord.Embed(
+            description=(
+                f"❓ 사용법 1: `{ctx.prefix}reset log [server/punish/ticket]`\n"
+                f"❓ 사용법 2: `{ctx.prefix}reset command [bot/emoji/ticket]`\n"
+                f"❓ 사용법 3: `{ctx.prefix}reset all` (모든 설정 초기화)"
+            ),
+            color=0x808080
+        )
+
+        if not category:
+            return await ctx.send(embed=usage_embed)
+
+        category = category.lower()
+
+        if category == "all":
             await self.delete_ticket_panel(ctx.guild)
             self.server_configs.pop(gid, None)
             embed = discord.Embed(description="✅ 모든 설정이 초기화되었습니다.", color=0x808080)
+            self.save_config()
+            return await ctx.send(embed=embed)
 
-        elif target and target.lower() in key_map:
-            target = target.lower()
+        if not target:
+            return await ctx.send(embed=usage_embed)
+        
+        target = target.lower()
 
-            if target == "panel":
-                await self.delete_ticket_panel(ctx.guild)
-
-            if gid in self.server_configs:
-                self.server_configs[gid][key_map[target]] = None
-
-                if target == "panel":
-                    self.server_configs[gid]["ticket_panel_msg_id"] = None
-
-                embed = discord.Embed(
-                    description=f"✅ **{target.upper()}** 설정 및 패널이 제거되었습니다.",
-                    color=0x808080
-                )
-            else:
-                embed = discord.Embed(description="❌ 설정된 데이터가 없습니다.", color=0x808080)
+        if category == "log" and target in log_targets:
+            db_target = "log_ticket" if target == "ticket" else target
+        elif category == "command" and target in command_targets:
+            db_target = "cmd_ticket" if target == "ticket" else target
         else:
+            if category == "log":
+                rightTarget = "/".join(log_targets)
+            elif category == "command":
+                rightTarget = "/".join(command_targets)
+            else:
+                return await ctx.send(embed=usage_embed)
+
             embed = discord.Embed(
-                description=f"❓ 사용법: `{ctx.prefix}reset [server/punish/bot/emoji/panel/ticket/all]`",
+                title="❓ 정확한 타겟을 입력해주세요.",
+                description=f"Ex. `{ctx.prefix}reset {category} [{rightTarget}]`",
                 color=0x808080
             )
+            return await ctx.send(embed=embed)
+
+        self.get_server_data(ctx.guild) # 리셋 전 딕셔너리 키 무결성 보장
+
+        if gid in self.server_configs:
+            if db_target == "cmd_ticket":
+                await self.delete_ticket_panel(ctx.guild)
+                self.server_configs[gid]["ticket_panel_msg_id"] = None
+
+            self.server_configs[gid][key_map[db_target]] = None
+
+            cat_name = "로그" if category == "log" else "명령어"
+            embed = discord.Embed(
+                description=f"✅ **{cat_name} [{target.upper()}]** 설정이 제거되었습니다.",
+                color=0x808080
+            )
+        else:
+            embed = discord.Embed(description="❌ 설정된 데이터가 없습니다.", color=0x808080)
 
         self.save_config()
         await ctx.send(embed=embed)
