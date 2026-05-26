@@ -143,8 +143,8 @@ class Settings(commands.Cog):
 
         target_channel = channel or ctx.channel
         gid = str(ctx.guild.id)
-        self.get_server_data(ctx.guild) # 딕셔너리 구조 완전 보장 후 데이터 주입
-        self.server_configs[gid][key_map[db_target]] = target_channel.id
+
+        self.get_server_data(ctx.guild)
 
         embed = discord.Embed(
             description=f"✅ **{category.upper()} [{target.upper()}]** 채널이 {target_channel.mention}로 설정되었습니다.",
@@ -153,21 +153,23 @@ class Settings(commands.Cog):
 
         if db_target == "cmd_ticket":
             ticket_cog = self.bot.get_cog('Ticket')
-            if ticket_cog:
-                panel_msg = await ticket_cog.send_ticket_panel(target_channel)
-                if panel_msg:
-                    self.server_configs[gid]["ticket_panel_channel_id"] = target_channel.id
-                    self.server_configs[gid]["ticket_panel_msg_id"] = panel_msg.id
-                    embed = discord.Embed(
-                        description=f"✅ 티켓 패널이 {target_channel.mention}에 생성되었습니다.",
-                        color=0x808080
-                    )
-                else:
-                    embed = discord.Embed(description="❌ 티켓 메시지 생성에 실패했습니다.", color=0x808080)
-                    return await ctx.send(embed=embed)
-            else:
+            if not ticket_cog:
                 embed = discord.Embed(description="❌ Ticket Cog가 로드되지 않았습니다.", color=0x808080)
                 return await ctx.send(embed=embed)
+
+            panel_msg = await ticket_cog.send_ticket_panel(target_channel)
+            if not panel_msg:
+                embed = discord.Embed(description="❌ 티켓 메시지 생성에 실패했습니다.", color=0x808080)
+                return await ctx.send(embed=embed)
+            
+            self.server_configs[gid]["ticket_panel_channel_id"] = target_channel.id
+            self.server_configs[gid]["ticket_panel_msg_id"] = panel_msg.id
+            embed = discord.Embed(
+                description=f"✅ 티켓 패널이 {target_channel.mention}에 생성되었습니다.",
+                color=0x808080
+            )
+        else:
+            self.server_configs[gid][key_map[db_target]] = target_channel.id
 
         self.save_config()
         await ctx.send(embed=embed)
@@ -244,9 +246,8 @@ class Settings(commands.Cog):
 
             self.server_configs[gid][key_map[db_target]] = None
 
-            cat_name = "로그" if category == "log" else "명령어"
             embed = discord.Embed(
-                description=f"✅ **{cat_name} [{target.upper()}]** 설정이 제거되었습니다.",
+                description=f"✅ **{category} [{target.upper()}]** 설정이 제거되었습니다.",
                 color=0x808080
             )
         else:
